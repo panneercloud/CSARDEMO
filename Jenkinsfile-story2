@@ -1,0 +1,39 @@
+pipeline {
+  agent any
+
+  environment {
+    OTEL_SERVICE_NAME = 'jenkins-ci'
+    OTEL_EXPORTER_OTLP_ENDPOINT = 'http://localhost:4317'
+  }
+
+  stages {
+    stage('Capture Build Metadata') {
+      steps {
+        script {
+          def startTime = System.currentTimeMillis()
+          echo "Job Name      : ${env.JOB_NAME}"
+          echo "Build Number  : ${env.BUILD_NUMBER}"
+
+          def otelAttributes = [
+            jobName: env.JOB_NAME,
+            buildNumber: env.BUILD_NUMBER,
+            startTime: startTime,
+            agent: env.NODE_NAME
+          ]
+          echo "OpenTelemetry Attributes: ${otelAttributes}"
+        }
+      }
+    }
+
+    stage('Complete Build') {
+      steps {
+        script {
+          def endTime = System.currentTimeMillis()
+          def duration = endTime - currentBuild.startTimeInMillis
+          echo "Build Duration: ${duration} ms"
+          echo "Build Status  : ${currentBuild.currentResult}"
+        }
+      }
+    }
+  }
+}
